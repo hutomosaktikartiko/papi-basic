@@ -5,7 +5,7 @@ import {
   type PolkadotClient,
   type SS58String,
 } from "polkadot-api";
-import { dot } from "@polkadot-api/descriptors";
+import { dot, people } from "@polkadot-api/descriptors";
 
 function makeClient(endpoint: string): PolkadotClient {
   console.log(`Connecting to endpoint: ${endpoint}`);
@@ -35,13 +35,30 @@ async function getBalance(
   return free + reserved;
 }
 
+async function getDisplayName(
+  peopleClient: PolkadotClient,
+  address: SS58String
+): Promise<string | undefined> {
+  const peopleApi = peopleClient.getTypedApi(people);
+  const accountInfo = await peopleApi.query.Identity.IdentityOf.getValue(
+    address
+  );
+  const displayName = accountInfo?.info.display.value?.toString();
+
+  return displayName;
+}
+
 async function main() {
   const polkadotClient = makeClient("wss://rpc.polkadot.io");
   await printChainInfo(polkadotClient);
 
+  const peopleClient = makeClient("wss://polkadot-people-rpc.polkadot.io");
+  await printChainInfo(peopleClient);
+
   const address = "15DCZocYEM2ThYCAj22QE4QENRvUNVrDtoLBVbCm5x4EQncr";
   const balance = await getBalance(polkadotClient, address);
-  console.log(`Balance of ${address} is ${balance}.`);
+  const displayName = await getDisplayName(peopleClient, address);
+  console.log(`Balance of ${displayName} (${address}) is ${balance}.`);
 
   console.log(`Done!`);
   process.exit(0);
